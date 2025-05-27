@@ -19,13 +19,13 @@ model User {
 }
 
 model Match {
-  id         String   @id @default(cuid())
-  creatorId  String
-  team1      String[]
-  team2      String[]
-  winner     String?
-  status     String   @default("pending")
-  maps       String[]
-  createdAt  DateTime @default(now())
-  creator    User     @relation(fields: [creatorId], references: [id])
+  id        String   @id @default(cuid())
+  creatorId String
+  team1     String[]
+  team2     String[]
+  winner    String?
+  status    String   @default("pending")
+  maps      String[]
+  createdAt DateTime @default(now())
+  creator   User     @relation(fields: [creatorId], references: [id])
 }
