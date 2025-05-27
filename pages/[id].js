@@ -12,15 +12,25 @@ export default function Partida() {
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [vetoMaps, setVetoMaps] = useState([]);
   const [currentCaptain, setCurrentCaptain] = useState('team1');
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!id) return;
+    
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.get('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => setUser(res.data))
+        .catch(() => setUser(null));
+    }
+
     axios.get(`/api/match/${id}`).then((res) => {
       setMatch({
         ...res.data,
         jogadoresDisponiveis: res.data.jogadoresDisponiveis || [],
       });
     });
+
   }, [id]);
 
   const handleSelectPlayer = (nickname) => {
@@ -32,6 +42,26 @@ export default function Partida() {
   const handleVeto = (map) => {
     if (vetoMaps.includes(map)) return;
     setVetoMaps([...vetoMaps, map]);
+  };
+
+  const handleSetWinner = async (winnerTeam) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Você precisa estar logado para definir o vencedor.');
+      return;
+    }
+    try {
+      const res = await axios.post(`/api/match/${id}/set-winner`, { winnerTeam }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert(res.data.message);
+      if (res.data.updatedMatch) {
+          setMatch(res.data.updatedMatch);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || 'Erro ao definir o vencedor.');
+    }
   };
 
   const renderImparPar = () => (
@@ -95,12 +125,40 @@ export default function Partida() {
     );
   };
 
+  const renderSetWinner = () => {
+    const isCreator = user && match && user.id === match.creatorId;
+    const winnerNotSet = match && !match.winner;
+
+    if (!isCreator || !winnerNotSet) return null;
+
+    return (
+      <div className="mt-8 p-6 bg-gray-800 rounded">
+        <h2 className="text-xl font-bold mb-4">Definir Vencedor</h2>
+        <button
+          onClick={() => handleSetWinner('team1')}
+          className="bg-blue-600 px-4 py-2 rounded font-bold mr-4"
+        >
+          Time 1 Venceu
+        </button>
+        <button
+          onClick={() => handleSetWinner('team2')}
+          className="bg-red-600 px-4 py-2 rounded font-bold"
+        >
+          Time 2 Venceu
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <h1 className="text-3xl font-bold mb-6">Partida #{id}</h1>
       {step === 1 && renderImparPar()}
       {step === 2 && renderSelecao()}
       {step === 3 && renderVeto()}
+
+      {match && renderSetWinner()}
+
     </div>
   );
 }
